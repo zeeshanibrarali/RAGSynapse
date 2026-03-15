@@ -42,13 +42,13 @@ A production-grade RAG system for intelligent document Q&A. Supports multi-forma
 
 ## 📈 New Production Features
 
-✅ Multi-LLM support (OpenAI/Claude/Ollama)
-✅ RAGAS evaluation: 0.87 faithfulness score
-✅ MLflow observability dashboard
-✅ FastAPI streaming endpoints
-✅ Redis vector store with health checks
-✅ Docker Compose production setup
-✅ OCR for image-based documents
+- ✅ Multi-LLM support (OpenAI/Claude/Ollama)
+- ✅ RAGAS evaluation: 0.87 faithfulness score
+- ✅ MLflow observability dashboard
+- ✅ FastAPI streaming endpoints
+- ✅ Redis vector store with health checks
+- ✅ Docker Compose production setup
+- ✅ OCR for image-based documents
 
 
 ## 🚀 Quick Start
