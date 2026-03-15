@@ -201,5 +201,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Keywords**: LlamaIndex, Streamlit, RAG, Document Q&A, AI, Machine Learning, Python, Vector Database, Redis, PDF Processing, OCR, Natural Language Processing, Document Intelligence, Retrieval Augmented Generation, Chatbot, Knowledge Base
-
-Made with ❤️ using [LlamaIndex](https://docs.llamaindex.ai/) and [Streamlit](https://streamlit.io/)
