@@ -1,25 +1,31 @@
-# My Base Image
 FROM python:3.11.5-slim-bookworm
 
-# Set Working Directory in the image
 WORKDIR /ragsynapse
 
-# Copy Everything for dockerfile loc to -> /ragsynapse in image
-COPY . .
+# ── System deps in ONE layer ─────────────────────────────────────────
+RUN apt-get update && apt-get install -y \
+    poppler-utils \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    libreoffice \
+    && rm -rf /var/lib/apt/lists/*
 
-# pip install dependencies
-RUN apt-get update && apt-get install -y poppler-utils
-RUN apt-get update && apt-get install -y tesseract-ocr-eng
-RUN apt-get update && apt-get install -y libreoffice
-# RUN apt-get update && apt-get install -y pandoc
-# RUN apt-get update && apt-get install -y texlive-latex-base
-# RUN apt-get update && apt-get install -y texlive-xetex
+# ── Pip upgrade ───────────────────────────────────────────────────────
 RUN pip install --upgrade pip
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# ── Torch CPU-only (separate step — keeps it cacheable) ──────────────
+RUN pip install --no-cache-dir torch==2.3.0 --index-url https://download.pytorch.org/whl/cpu
+
+# ── Copy ONLY requirements first (cache this layer independently) ─────
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# The port to be exposed
+# ── NOW copy the rest of the code ─────────────────────────────────────
+COPY . .
+
 EXPOSE 8501
 
-# Command to run when the container starts
-CMD [ "streamlit", "run", "./src/app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.maxUploadSize=4000" ]
+CMD ["streamlit", "run", "./src/app.py", \
+     "--server.port=8501", \
+     "--server.address=0.0.0.0", \
+     "--server.maxUploadSize=4000"]

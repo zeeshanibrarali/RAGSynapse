@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "ragsyanpse"
+version = "2.0.0"
+description = "Production RAG system with multi-model support, RAGAS evaluation, and MLflow observability"
+authors = [{ name = "Zeeshan Ibrar", email = "zeeshanibrar10987@gmail.com" }]
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["rag", "llm", "langchain", "mlops", "vector-database"]
+
+[project.urls]
+Repository = "https://github.com/zeeshanibrarali/RAGSyanpse"
+
+[tool.setuptools.packages.find]
+where = ["src"]

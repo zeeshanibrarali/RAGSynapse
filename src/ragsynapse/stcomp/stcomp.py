@@ -315,7 +315,9 @@ def handle_user_input(user_query: str) -> None:
                             node = response.source_nodes[0]  # Only consider the first node
                             # st.markdown(get_context(node.text, bot_response),unsafe_allow_html=True)
                             # Replace get_context calls with this temporarily
-                            context_text = f"*Source: {node.metadata.get('source', 'Unknown')} | Chunk preview: {node.text[:300]}...*"
+                            # context_text = f"*Source: {node.metadata.get('source', 'Unknown')} | Chunk preview: {node.text[:300]}...*"
+                            context_text = f"*Source: {node.metadata.get('source', 'Unknown')}*\n\n{node.text[:400]}..."
+                            st.markdown(context_text)
 
                     with tab3:
                         for node_idx, node in enumerate(response.source_nodes):
@@ -365,8 +367,9 @@ def handle_user_input(user_query: str) -> None:
                             node = response.source_nodes[0]  # Only consider the first node
                             # st.markdown(get_context(node.text, bot_response),unsafe_allow_html=True)
                             # Replace get_context calls with this temporarily
-                            context_text = f"*Source: {node.metadata.get('source', 'Unknown')} | Chunk preview: {node.text[:300]}...*"
-
+                            # context_text = f"*Source: {node.metadata.get('source', 'Unknown')} | Chunk preview: {node.text[:300]}...*"
+                            context_text = f"*Source: {node.metadata.get('source', 'Unknown')}*\n\n{node.text[:400]}..."
+                            st.markdown(context_text)
 
                     with tab2:
                         for node_idx, node in enumerate(response.source_nodes):

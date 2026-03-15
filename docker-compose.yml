@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   ragsynapse:
     build:
@@ -8,15 +6,15 @@ services:
     image: ragsynapse:v3
     ports:
       - "8501:8501"
-    command: >
-      streamlit run ./src/app.py 
-      --server.port=8501 
-      --server.address=0.0.0.0 
-      --server.maxUploadSize=4000
+    environment:
+      - PYTHONPATH=/ragsynapse/src
+    env_file:
+      - .env
     networks:
       - ragsynapse-network
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy   # waits for Redis to be ready
     volumes:
       - "./:/ragsynapse"
 
