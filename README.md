@@ -2,6 +2,10 @@
 
 > Built by [Zeeshan Ibrar](https://github.com/zeeshanibrarali) · Extended from open-source LlamaIndex RAG base
 
+**Transform your documents into an intelligent Q&A system. Upload PDFs, DOCX, or TXT files and get instant, contextual answers powered by advanced AI embeddings.**
+
+https://github.com/user-attachments/assets/a59324bf-1e8a-4dc5-a3b6-7cc32c9ad31f
+
 A production-grade RAG system for intelligent document Q&A. Supports multi-format documents (PDF, DOCX, TXT) with:
 
 - **Multi-model LLM support** — OpenAI GPT-4o, Anthropic Claude, local Ollama (added in v2)
@@ -21,57 +25,8 @@ A production-grade RAG system for intelligent document Q&A. Supports multi-forma
 | API layer | Streamlit only | **FastAPI streaming endpoints** |
 | Package structure | `docqna` | **`ragsynapse` + `pyproject.toml`** |
 
-## 🚀 Quick Start
 
-```bash
-git clone https://github.com/zeeshanibrarali/ragsynapse
-cd ragsynapse
-cp .env.example .env        # Add your OpenAI/Claude API keys
-docker compose up --build
-# Open http://localhost:8501 
-```
-
-## 🏗️ Architecture
-
-graph TD
-    A[📄 Docs: PDF/DOCX/TXT] --> B[🔍 OCR + Chunking]
-    B --> C[🗄️ Redis Vector Store]
-    D[❓ User Query] --> E[🤖 Multi-LLM: GPT/Claude/Ollama]
-    C --> F[⚡ RAG Retrieval]
-    F --> E
-    E --> G[⚙️ FastAPI Streaming API]
-    G --> H[🎨 Streamlit UI]
-    E --> I[📊 MLflow Tracking]
-    I --> J[✅ RAGAS Eval: 0.87 Faithfulness]
-    style J fill:#90EE90
-
-
-## 🛠️ Tech Stack
-
-Python 3.11 · LlamaIndex · LangChain · Redis · FastAPI · MLflow · RAGAS · Docker · Tesseract OCR
-
-
-## 📈 Production Features
-
-✅ Multi-LLM support (OpenAI/Claude/Ollama)
-✅ RAGAS evaluation: 0.87 faithfulness score
-✅ MLflow observability dashboard
-✅ FastAPI streaming endpoints
-✅ Redis vector store with health checks
-✅ Docker Compose production setup
-✅ OCR for image-based documents
-
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.27.2-FF4B4B?style=flat&logo=streamlit)](https://streamlit.io/)
-[![LlamaIndex](https://img.shields.io/badge/LlamaIndex-0.10.18-4285F4?style=flat)](https://docs.llamaindex.ai/)
-[![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=flat&logo=python)](https://python.org/)
-[![Redis](https://img.shields.io/badge/Redis-Vector%20Store-DC382D?style=flat&logo=redis)](https://redis.io/)
-[![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?style=flat&logo=docker)](https://docker.com/)
-
-> **Transform your documents into an intelligent Q&A system. Upload PDFs, DOCX, or TXT files and get instant, contextual answers powered by advanced AI embeddings.**
-
-https://github.com/user-attachments/assets/a59324bf-1e8a-4dc5-a3b6-7cc32c9ad31f
-
-### 🔥 Key Features
+## 🔥 Old Key Features
 
 - **🚀 LlamaIndex-Powered RAG**: Advanced document indexing and retrieval using LlamaIndex's state-of-the-art RAG pipeline
 - **💻 Streamlit Web Interface**: Beautiful, responsive UI built with Streamlit for seamless user experience
@@ -84,32 +39,28 @@ https://github.com/user-attachments/assets/a59324bf-1e8a-4dc5-a3b6-7cc32c9ad31f
 - **🎨 Modern UI**: Clean, intuitive interface with chat-style interactions and comprehensive error feedback
 - **🐳 Containerized Deployment**: Fully containerized with Docker Compose for easy setup and deployment
 
+
+## 📈 New Production Features
+
+✅ Multi-LLM support (OpenAI/Claude/Ollama)
+✅ RAGAS evaluation: 0.87 faithfulness score
+✅ MLflow observability dashboard
+✅ FastAPI streaming endpoints
+✅ Redis vector store with health checks
+✅ Docker Compose production setup
+✅ OCR for image-based documents
+
+
 ## 🚀 Quick Start
 
-### Prerequisites
-- Docker and Docker Compose
-- 4GB+ RAM recommended
-- Internet connection for model downloads
-
-### 1. Clone the Repository
 ```bash
-git clone https://github.com/rigvedrs/RAGSnapse.git
-cd RAGsynapse
-```
-
-### 2. Environment Setup
-Create a `.env` file with your OpenAI API key:
-```bash
-echo "OPENAI_API_KEY=your_openai_api_key_here" > .env
-```
-
-### 3. Launch with Docker
-```bash
+git clone https://github.com/zeeshanibrarali/ragsynapse
+cd ragsynapse
+cp .env.example .env        # Add your OpenAI/Claude API keys
 docker compose up --build
+# Open http://localhost:8501 
 ```
 
-### 4. Access the Application
-Open your browser and navigate to: `http://localhost:8501`
 
 ## 📖 How to Use
 
@@ -151,7 +102,25 @@ When you ask questions, RAGSynapse doesn't just provide answers—it tells you e
 - **Content Verification**: Easy verification of AI responses against source documents
 - **Context Preservation**: Maintains document structure and page relationships
 
-## 🛠️ Technology Stack
+
+## 🏗️ Architecture
+
+graph TD
+-   A[📄 Docs: PDF/DOCX/TXT] --> B[🔍 OCR + Chunking]
+-   B --> C[🗄️ Redis Vector Store]
+-   D[❓ User Query] --> E[🤖 Multi-LLM: GPT/Claude/Ollama]
+-   C --> F[⚡ RAG Retrieval]
+-   F --> E
+-   E --> G[⚙️ FastAPI Streaming API]
+-   G --> H[🎨 Streamlit UI]
+-   E --> I[📊 MLflow Tracking]
+-   I --> J[✅ RAGAS Eval: 0.87 Faithfulness]
+-   style J fill:#90EE90
+
+
+## 🛠️ Tech Stack
+
+Python 3.11 · LlamaIndex · LangChain · Redis · FastAPI · MLflow · RAGAS · Docker · Tesseract OCR
 
 ### Core Technologies
 - **[LlamaIndex](https://docs.llamaindex.ai/)**: Advanced RAG framework for document indexing and retrieval
@@ -174,63 +143,13 @@ When you ask questions, RAGSynapse doesn't just provide answers—it tells you e
 - **sentence-transformers**: Text embedding generation
 - **NLTK**: Natural language processing utilities
 
-## ⚙️ Configuration
 
-### Embedding Model Settings
-```toml
-[embed_model]
-model_name = "BAAI/bge-base-en-v1.5"
-cache_folder = "/ragsynapse/store/models"
-embed_batch_size = 1
-```
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.27.2-FF4B4B?style=flat&logo=streamlit)](https://streamlit.io/)
+[![LlamaIndex](https://img.shields.io/badge/LlamaIndex-0.10.18-4285F4?style=flat)](https://docs.llamaindex.ai/)
+[![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=flat&logo=python)](https://python.org/)
+[![Redis](https://img.shields.io/badge/Redis-Vector%20Store-DC382D?style=flat&logo=redis)](https://redis.io/)
+[![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?style=flat&logo=docker)](https://docker.com/)
 
-### Document Chunking
-```toml
-[transformations]
-chunk_size = 1000
-chunk_overlap = 100
-```
-
-### Redis Configuration
-```toml
-[redis]
-host_name = 'redis'
-port_no = 6379
-doc_store_name = "DocStore_v1"
-vector_index_name = "VecStore_v1"
-```
-
-## 🔧 Advanced Usage
-
-### Custom Embedding Models
-Replace the embedding model in `config.toml`:
-```toml
-model_name = "your-custom-huggingface-model"
-```
-
-### Scaling with Docker
-For production deployment with multiple instances:
-```bash
-docker compose up -d --scale ragsyanpse=3
-```
-Note: Streamlit apps are single-threaded. Multiple instances can be run behind a load balancer (e.g., nginx) for better concurrency handling.
-
-### API Integration
-The application can be extended with REST API endpoints for programmatic access.
-
-## 🧪 Development
-
-### Local Development Setup
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Start Redis
-docker run -d -p 6379:6379 redis/redis-stack-server:latest
-
-# Run Streamlit app
-streamlit run src/app.py
-```
 
 ### Project Structure
 ```
@@ -247,6 +166,7 @@ RAGSYNAPSE/
 ├── docker-compose.yml         # Docker deployment
 └── Dockerfile                 # Container definition
 ```
+
 
 ## 🤝 Contributing
 
