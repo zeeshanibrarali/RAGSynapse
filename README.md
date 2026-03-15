@@ -103,21 +103,6 @@ When you ask questions, RAGSynapse doesn't just provide answers—it tells you e
 - **Context Preservation**: Maintains document structure and page relationships
 
 
-## 🏗️ Architecture
-
-graph TD
--   A[📄 Docs: PDF/DOCX/TXT] --> B[🔍 OCR + Chunking]
--   B --> C[🗄️ Redis Vector Store]
--   D[❓ User Query] --> E[🤖 Multi-LLM: GPT/Claude/Ollama]
--   C --> F[⚡ RAG Retrieval]
--   F --> E
--   E --> G[⚙️ FastAPI Streaming API]
--   G --> H[🎨 Streamlit UI]
--   E --> I[📊 MLflow Tracking]
--   I --> J[✅ RAGAS Eval: 0.87 Faithfulness]
--   style J fill:#90EE90
-
-
 ## 🛠️ Tech Stack
 
 Python 3.11 · LlamaIndex · LangChain · Redis · FastAPI · MLflow · RAGAS · Docker · Tesseract OCR
@@ -142,13 +127,6 @@ Python 3.11 · LlamaIndex · LangChain · Redis · FastAPI · MLflow · RAGAS ·
 - **OpenAI API**: Large language model integration
 - **sentence-transformers**: Text embedding generation
 - **NLTK**: Natural language processing utilities
-
-
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.27.2-FF4B4B?style=flat&logo=streamlit)](https://streamlit.io/)
-[![LlamaIndex](https://img.shields.io/badge/LlamaIndex-0.10.18-4285F4?style=flat)](https://docs.llamaindex.ai/)
-[![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=flat&logo=python)](https://python.org/)
-[![Redis](https://img.shields.io/badge/Redis-Vector%20Store-DC382D?style=flat&logo=redis)](https://redis.io/)
-[![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?style=flat&logo=docker)](https://docker.com/)
 
 
 ### Project Structure
