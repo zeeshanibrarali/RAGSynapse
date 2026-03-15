@@ -1,88 +1,141 @@
-# Third-Party Libraries
+import os
 import streamlit as st
-from streamlit.type_util import Key
 
-# Basic Page layout
 st.set_page_config(
-    page_title="Document Insight", page_icon=":books:", layout="wide"
+    page_title="RAGSynapse", page_icon="🧠", layout="wide"
 )
 
 from dotenv import load_dotenv
-
-# Module Imports
 from ragsynapse.HTMLTemplates import css
 from ragsynapse.stcomp import initialize_session_state, file_processing, handle_user_input
-# Load environment variables
+from ragsynapse.llm.model_factory import get_available_models, get_llm
+
 load_dotenv(dotenv_path="../.env", verbose=True)
 load_dotenv(dotenv_path="./.env", verbose=True)
 
 
-def main() -> None:
+# ── Model config per provider ─────────────────────────────────────────────────
+PROVIDER_MODELS = {
+    "ollama":    ["llama3.2", "mistral", "codellama", "phi3"],
+    "openai":    ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
+    "anthropic": ["claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022"],
+}
+
+
+def render_sidebar() -> tuple[str, str]:
     """
-    Main function to run the Streamlit application for Document Insight.
-
-    The application offers a user-friendly interface to:
-    1. Upload multiple PDF documents.
-    2. Process these documents by converting PDFs to text, segmenting the text, and storing them in a Chroma Vector Database.
-    3. Submit queries about the processed documents and get relevant insights.
-
-    Features:
-    - Customized page title and icon.
-    - Utilizes session management to retain the state of processed documents.
-    - A sidebar for document uploads with relevant feedback messages.
-    - A main area for processing user queries regarding the uploaded documents.
-
-    Note:
-    The actual file processing and query functionalities are encapsulated in separate functions and modules for modularity and maintainability.
+    Renders the full sidebar: model selector + document uploader.
+    Returns selected (provider, model) so app.py can pass them to session state.
     """
-
-    # Set our CSS
-    st.write(css, unsafe_allow_html=True)
-
-    # Initialize session-state
-    initialize_session_state()
-    
-
-    # Set Title of the page
-    st.title(body="Document Insight :books:")
-
-    try:
-        # Handle user's query (Placeholder)
-        user_query = st.text_input("Enter your question:")
-        # user_query = st.chat_input("Ask your question")
-        if user_query:  
-            handle_user_input(user_query)
-
-    except Exception as e:
-        st.error(f"Query Error: {e}")
-
-    # The sidebar for the user to input the document
     with st.sidebar:
-        # The message for the user
-        st.subheader(body="Upload Your Documents")
-        # The element that allows user to upload PDFs from the user
+
+        # ── 1. Model selector (RAGSynapse v2 addition) ────────────────────────
+        st.markdown("### 🤖 LLM Backend")
+
+        available = get_available_models()
+        provider_options = list(available.keys())
+
+        # Default to env var, fall back to ollama
+        default_provider = os.getenv("LLM_PROVIDER", "ollama")
+        default_idx = provider_options.index(default_provider) \
+            if default_provider in provider_options else 0
+
+        selected_provider = st.selectbox(
+            label="Provider",
+            options=provider_options,
+            index=default_idx,
+            help="Switch between OpenAI, Anthropic Claude, or local Ollama models"
+        )
+
+        model_options = PROVIDER_MODELS.get(selected_provider, ["default"])
+        selected_model = st.selectbox(
+            label="Model",
+            options=model_options,
+            help="Select the specific model to use for answering questions"
+        )
+
+        # Show status badge
+        if selected_provider == "ollama":
+            st.success("🟢 Local — no API key needed")
+        elif selected_provider == "openai" and os.getenv("OPENAI_API_KEY"):
+            st.success("🟢 OpenAI key detected")
+        elif selected_provider == "anthropic" and os.getenv("ANTHROPIC_API_KEY"):
+            st.success("🟢 Anthropic key detected")
+        else:
+            st.warning(f"⚠️ No API key found for {selected_provider}")
+
+        # Apply model change button
+        if st.button("Apply Model", use_container_width=True):
+            # Force re-init conversation with new model
+            if "conversation" in st.session_state:
+                del st.session_state["conversation"]
+            if "llm_provider" in st.session_state:
+                del st.session_state["llm_provider"]
+            st.success(f"Switched to {selected_provider} / {selected_model}")
+            st.rerun()
+
+        st.divider()
+
+        # ── 2. Document uploader ──────────────────────────────────────────────
+        st.markdown("### 📄 Upload Documents")
         files = st.file_uploader(
-            label="Upload PDF, Docx or txt documents for processing:",
+            label="Upload PDF, DOCX or TXT files:",
             accept_multiple_files=True,
             type=["pdf", "docx", "txt"],
         )
-        # The Button to press, the Files are uploaded
-        # The condition to proceed is that both file and button should not return None
-        if st.button(label="Analyze"):
-            # If the session state contains that the file was processed
-            if st.session_state.documents_processed:
+
+        if st.button(label="Analyze", use_container_width=True):
+            if st.session_state.get("documents_processed"):
                 st.warning(
-                    "You've already processed some documents. Uploading more will add to the existing data."
+                    "Documents already processed. "
+                    "Uploading more will add to existing data."
                 )
-            # if `files` list in not empty then proceed
             if files:
-                # This function will processs the files i.e.
-                # 1. Convert PDFs to text
-                # 2. Split the text to Documents
-                # 3. Push the Documents into Chroma Vector DB
                 file_processing(files)
+
+        st.divider()
+
+        # ── 3. Footer ─────────────────────────────────────────────────────────
+        st.markdown(
+            "<small>RAGSynapse v2 · Built by "
+            "[Zeeshan Ibrar](https://github.com/zeeshanibrarali)</small>",
+            unsafe_allow_html=True
+        )
+
+    return selected_provider, selected_model
+
+
+def main() -> None:
+    st.write(css, unsafe_allow_html=True)
+
+    # Render sidebar and get selected model config
+    selected_provider, selected_model = render_sidebar()
+
+    # Initialize session state with selected model
+    initialize_session_state(
+        provider=selected_provider,
+        model=selected_model
+    )
+
+    # ── Main area ─────────────────────────────────────────────────────────────
+    st.title("🧠 RAGSynapse")
+    st.caption(
+        "Multi-model document intelligence · "
+        f"Running: `{selected_provider}` / `{selected_model}`"
+    )
+
+    st.divider()
+
+    try:
+        user_query = st.text_input(
+            "Ask a question about your documents:",
+            placeholder="e.g. What are the key findings in this report?"
+        )
+        if user_query:
+            handle_user_input(user_query)
+    except Exception as e:
+        st.error(f"Query Error: {e}")
 
 
 if __name__ == "__main__":
-    # Run the Streamlit show
     main()

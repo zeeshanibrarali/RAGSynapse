@@ -33,8 +33,13 @@ from nltk.tokenize import sent_tokenize
 import re
 
 # Initialising pipeline and embed model
-pipeline = get_pipeline()['pipeline']
-embed_model = get_pipeline()['embed_model']
+# pipeline = get_pipeline()['pipeline']
+# embed_model = get_pipeline()['embed_model']
+
+@st.cache_resource
+def load_pipeline():
+    result = get_pipeline()
+    return result['pipeline'], result['embed_model']
 
 
 # Get the directory of the current file and construct path to config.toml
@@ -113,21 +118,27 @@ def txt_to_pdf(txt_file_path, pdf_file_path):
 
 
 
-def initialize_session_state():
+def initialize_session_state(provider: str = None, model: str = None):
     """
     Initialize or reset session states for Streamlit application.
-
-
-    Notes:
-    - Initializes the conversation chain, documents processed flag, and chat history in the session state.
-    - It checks if the session state variable already exists before initializing to avoid overwriting.
+    Accepts optional provider/model to switch LLM backend.
     """
     if "conversation" not in st.session_state:
-        st.session_state.conversation = get_conversation_engine(embed_model, pipeline.vector_store)
+        _pipeline, _embed_model = load_pipeline() 
+        st.session_state.conversation = get_conversation_engine(
+            _embed_model,
+            _pipeline.vector_store,
+            provider=provider,
+            model=model,
+        )
     if "documents_processed" not in st.session_state:
         st.session_state.documents_processed = False
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
+    if "llm_provider" not in st.session_state:
+        st.session_state.llm_provider = provider or os.getenv("LLM_PROVIDER", "openai")
+    if "llm_model" not in st.session_state:
+        st.session_state.llm_model = model
 
 
 
@@ -218,7 +229,9 @@ def file_processing(files: list[Any]) -> None:
             # Initialise performance counter time
             t0 = perf_counter()
             # Get text nodes
-            nodes = get_text_nodes(documents, pipeline)
+            # nodes = get_text_nodes(documents, pipeline)
+            _pipeline, _embed_model = load_pipeline()
+            nodes = get_text_nodes(documents, _pipeline)
             t_delta = (perf_counter() - t0) / 60
 
             #  if Every thing moves smoothly Update session state
@@ -270,7 +283,10 @@ def handle_user_input(user_query: str) -> None:
     - Displays user input and bot responses using predefined HTML templates.
     """
     # Get response
-    response = st.session_state.conversation.chat(user_query, tool_choice="query_engine_tool")
+    # response = st.session_state.conversation.chat(user_query, tool_choice="query_engine_tool")
+
+
+    response = st.session_state.conversation.chat(user_query)
     # Create new session state Variable
     st.session_state.chat_history = st.session_state.conversation.chat_history
     for idx, msg in enumerate(st.session_state.chat_history):

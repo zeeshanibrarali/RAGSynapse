@@ -97,6 +97,7 @@ def get_llm(
             model=model,
             base_url=base_url,
             temperature=temperature,
+            request_timeout=180.0,
         )
 
 
