@@ -2,9 +2,9 @@
 FROM python:3.11.5-slim-bookworm
 
 # Set Working Directory in the image
-WORKDIR /DocQna
+WORKDIR /ragsynapse
 
-# Copy Everything for dockerfile loc to -> /DocQna in image
+# Copy Everything for dockerfile loc to -> /ragsynapse in image
 COPY . .
 
 # pip install dependencies

@@ -1,33 +1,39 @@
 version: '3.8'
 
 services:
-  docqna:
+  ragsynapse:
     build:
       context: .
       dockerfile: Dockerfile
-    image: docqna:v3
+    image: ragsynapse:v3
     ports:
       - "8501:8501"
-    command: ["streamlit", "run", "./src/app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.maxUploadSize=4000"]
+    command: >
+      streamlit run ./src/app.py 
+      --server.port=8501 
+      --server.address=0.0.0.0 
+      --server.maxUploadSize=4000
     networks:
-      - docqna-network
+      - ragsynapse-network
     depends_on:
       - redis
     volumes:
-      - "./:/DocQna" 
-
+      - "./:/ragsynapse"
 
   redis:
     image: redis/redis-stack-server:latest
     ports:
       - "6379:6379"
     healthcheck:
-      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      test: ["CMD", "redis-cli", "--raw", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
-      - docqna-network
+      - ragsynapse-network
     volumes:
       - "./store/vecdb:/data"
 
 networks:
-  docqna-network:
+  ragsynapse-network:
     driver: bridge

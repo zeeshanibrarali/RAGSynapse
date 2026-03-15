@@ -10,8 +10,8 @@ st.set_page_config(
 from dotenv import load_dotenv
 
 # Module Imports
-from docqna.HTMLTemplates import css
-from docqna.stcomp import initialize_session_state, file_processing, handle_user_input
+from ragsynapse.HTMLTemplates import css
+from ragsynapse.stcomp import initialize_session_state, file_processing, handle_user_input
 # Load environment variables
 load_dotenv(dotenv_path="../.env", verbose=True)
 load_dotenv(dotenv_path="./.env", verbose=True)

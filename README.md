@@ -173,7 +173,7 @@ model_name = "your-custom-huggingface-model"
 ### Scaling with Docker
 For production deployment with multiple instances:
 ```bash
-docker compose up -d --scale docqna=3
+docker compose up -d --scale ragsyanpse=3
 ```
 Note: Streamlit apps are single-threaded. Multiple instances can be run behind a load balancer (e.g., nginx) for better concurrency handling.
 

@@ -1,22 +1,43 @@
-# Directories
+# Project directories
 data/
 store/
 subs/
 assets/
 
-# Editor settings
+# IDE / editor settings
 .vscode/
+.idea/
 
-# Python caches
+# Python cache / compiled files
 **/__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# Python Environment
-.docqna/
-.docqna-dev/
+# Python virtual environments
+venv/
+.env/
 
-# Database
+# Old docqna folders (rename-safe)
+.ragsynapse/
+.ragsynapse-dev/
+
+# Database files
 *.rdb
-.DS_Store
+*.sqlite
+*.sqlite3
 
-# SENSITIVE INFORMATION!!!!!!!
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker
+*.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Sensitive information
 .env

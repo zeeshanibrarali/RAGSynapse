@@ -1,17 +1,30 @@
-# Created Dir
-data/*
-store/*
-subs/*
+# Created directories
+data/
+store/
+subs/
 assets/
 
-# Python caches
+# Python cache
 **/__pycache__/
+*.pyc
+*.pyo
 
-# Build Dirs
-.docqna/
-.docqna-dev/
+# Virtual environments
+venv/
+.env/
+
+# Build / project directories
+.ragsynapse/
+.ragsynapse-dev/
+
+# IDE
 .vscode/
-.git/
+.idea/
 
-# File data
+# Git
+.git/
 .gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
