@@ -27,7 +27,6 @@ from ..pipeline import get_pipeline
 from ..pdf_ingest import get_pdf_text, get_pdf_text_ocr, get_text_nodes
 from ..HTMLTemplates import bot_template, user_template
 from ..display_image import show_image
-from ..context import get_context
 from nltk.tokenize import sent_tokenize
 
 # Testing
@@ -314,7 +313,9 @@ def handle_user_input(user_query: str) -> None:
                         if len(response.source_nodes) > 0:
                             st.write("#### Exact Paragraph from where answer is derived: ")
                             node = response.source_nodes[0]  # Only consider the first node
-                            st.markdown(get_context(node.text, bot_response),unsafe_allow_html=True)
+                            # st.markdown(get_context(node.text, bot_response),unsafe_allow_html=True)
+                            # Replace get_context calls with this temporarily
+                            context_text = f"*Source: {node.metadata.get('source', 'Unknown')} | Chunk preview: {node.text[:300]}...*"
 
                     with tab3:
                         for node_idx, node in enumerate(response.source_nodes):
@@ -362,7 +363,10 @@ def handle_user_input(user_query: str) -> None:
                         if len(response.source_nodes) > 0:
                             st.write("#### Exact Paragraph from where answer is derived: ")
                             node = response.source_nodes[0]  # Only consider the first node
-                            st.markdown(get_context(node.text, bot_response),unsafe_allow_html=True)
+                            # st.markdown(get_context(node.text, bot_response),unsafe_allow_html=True)
+                            # Replace get_context calls with this temporarily
+                            context_text = f"*Source: {node.metadata.get('source', 'Unknown')} | Chunk preview: {node.text[:300]}...*"
+
 
                     with tab2:
                         for node_idx, node in enumerate(response.source_nodes):
