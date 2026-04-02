@@ -17,3 +17,13 @@ cache_name = "CacheStore_v1"        # Cache namespace
 
 [paths]
 data_path = "/ragsynapse/data/"     # Path to data folder
+
+
+[server]
+maxUploadSize = 4000
+
+[browser]
+gatherUsageStats = false
+
+[runner]
+fastReruns = false

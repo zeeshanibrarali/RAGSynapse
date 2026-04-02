@@ -30,7 +30,7 @@ class LLMConfig:
 DEFAULT_MODELS = {
     LLMProvider.OPENAI:    "gpt-4o-mini",
     LLMProvider.ANTHROPIC: "claude-3-5-haiku-20241022",
-    LLMProvider.OLLAMA:    "llama3.2",
+    LLMProvider.OLLAMA:    "tinyllama",
 }
 
 # Cost per 1K tokens (for tracking in MLflow later)
@@ -93,12 +93,22 @@ def get_llm(
 
     elif p == LLMProvider.OLLAMA:
         base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        return Ollama(
+        llm = Ollama(
             model=model,
             base_url=base_url,
             temperature=temperature,
-            request_timeout=180.0,
+            request_timeout=600.0,       # 10 minutes
+            context_window=2048,
+            additional_kwargs={
+            "num_predict": 150,      # short answers = fast on CPU
+            "num_ctx": 2048,
+            "num_threads": 4,   
+            }
         )
+        if hasattr(llm, '_client'):
+            import httpx
+            llm._client = httpx.Client(timeout=600.0)
+        return llm
 
 
 def get_available_models() -> dict:

@@ -9,6 +9,7 @@ import subprocess
 import io
 import toml
 from pathlib import Path
+import redis as redis_client
 
 # Third-Party Libraries
 import streamlit as st
@@ -140,6 +141,12 @@ def initialize_session_state(provider: str = None, model: str = None):
     if "llm_model" not in st.session_state:
         st.session_state.llm_model = model
 
+    # Auto-restore documents_processed if Redis has data
+    if not st.session_state.get("documents_processed"):
+        from ragsynapse.pipeline import get_stored_documents
+        if get_stored_documents():
+            st.session_state.documents_processed = True
+
 
 
 
@@ -231,22 +238,49 @@ def file_processing(files: list[Any]) -> None:
             # Get text nodes
             # nodes = get_text_nodes(documents, pipeline)
             _pipeline, _embed_model = load_pipeline()
+
+
+            # nodes = get_text_nodes(documents, _pipeline)
+            # t_delta = (perf_counter() - t0) / 60
+
+            # #  if Every thing moves smoothly Update session state
+            # if nodes is not None:
+            #     st.success(
+            #         f"Data preparation complete in {t_delta:.2f} minutes. You can now initiate queries."
+            #     )
+            #     st.session_state.documents_processed = True
+            # else: 
+            #     st.info(
+            #         "An Error occured. You can try passing the documents again..."
+            #     )
+
+
             nodes = get_text_nodes(documents, _pipeline)
             t_delta = (perf_counter() - t0) / 60
 
-            #  if Every thing moves smoothly Update session state
-            if nodes is not None:
-                st.success(
-                    f"Data preparation complete in {t_delta:.2f} minutes. You can now initiate queries."
-                )
+            if nodes is not None and len(nodes) > 0:
+                st.success(f"✅ {len(nodes)} chunks embedded and stored in Redis ({t_delta:.2f} min)")
                 st.session_state.documents_processed = True
-            else: 
-                st.info(
-                    "An Error occured. You can try passing the documents again..."
-                )
+
+            elif nodes is not None and len(nodes) == 0:
+                st.error(
+                    "⚠️ Pipeline ran but stored 0 chunks. "
+                    "Likely cause: document already exists in Redis (duplicate). "
+                    "Fix: run `docker compose down -v && docker compose up` to clear Redis, then re-upload."
+            )
+            # Don't set documents_processed = True — nothing was stored
+
+            else:
+                st.error("❌ Pipeline returned None — check logs for exception.")
+
+            health = check_redis_health()
+            if health["connected"]:
+                st.caption(f"Redis: {health['total_keys']} total keys stored")
+            else:
+                st.warning(f"Redis connection issue: {health['error']}")
 
     except Exception as e:
-        st.error(f"An error occurred: {e}")
+         st.error(f"An error occurred: {e}")
 
 
 
@@ -268,9 +302,173 @@ def get_page_num(text: str):
     return list(unique_page_numbers)
 
 
+def handle_user_input(
+    user_query: str,
+    provider: str = None,
+    fallback_chain: list = None,
+) -> None:
+    """
+    Process user input with automatic provider fallback on rate limit errors.
+    Falls back through fallback_chain if current provider hits quota/rate limits.
+    """
+    fallback_chain = fallback_chain or ["openai", "anthropic", "ollama"]
+    current_provider = provider or st.session_state.get("llm_provider", "ollama")
+
+    # Build fallback list starting after current provider
+    if current_provider in fallback_chain:
+        start = fallback_chain.index(current_provider)
+        ordered = fallback_chain[start:] + fallback_chain[:start]
+    else:
+        ordered = [current_provider] + fallback_chain
+
+    response = None
+    used_provider = current_provider
+
+    for attempt_provider in ordered:
+        try:
+            # Re-init conversation engine if provider changed
+            if st.session_state.get("llm_provider") != attempt_provider:
+                if "conversation" in st.session_state:
+                    del st.session_state["conversation"]
+                st.session_state["llm_provider"] = attempt_provider
+                _pipeline, _embed_model = load_pipeline()
+                st.session_state.conversation = get_conversation_engine(
+                    _embed_model,
+                    _pipeline.vector_store,
+                    provider=attempt_provider,
+                    model=None,
+                )
+
+            response = st.session_state.conversation.chat(user_query)
+            used_provider = attempt_provider
+            break  # Success — stop trying fallbacks
+
+        except Exception as e:
+            err = str(e).lower()
+            is_quota = any(x in err for x in [
+                "rate limit", "ratelimit", "quota", "429",
+                "insufficient_quota", "too many requests"
+            ])
+            if is_quota and attempt_provider != ordered[-1]:
+                next_p = ordered[ordered.index(attempt_provider) + 1]
+                st.warning(
+                    f"⚠️ `{attempt_provider}` rate limit hit — "
+                    f"switching to `{next_p}` automatically..."
+                )
+                continue  # Try next provider
+            else:
+                st.error(f"Query Error: {e}")
+                return
+
+    if response is None:
+        st.error("All providers failed. Please try again later.")
+        return
+
+    # Show which provider was actually used if it changed
+    if used_provider != current_provider:
+        st.info(f"ℹ️ Response from `{used_provider}` (auto-switched)")
+
+    # ── Display chat history ──────────────────────────────────────────────────
+    st.session_state.chat_history = st.session_state.conversation.chat_history
+
+    for idx, msg in enumerate(st.session_state.chat_history):
+        if msg.content is None:
+            continue
+
+        if msg.role.name == 'ASSISTANT':
+            bot_response = msg.content
+            bot_sentences = split_into_sentences(bot_response)
+
+            if len(bot_sentences) > 2:
+                truncated_response = ' '.join(bot_sentences[:2])
+                st.write(bot_template.replace("{{MSG}}", truncated_response), unsafe_allow_html=True)
+                with st.expander(label="More Options", expanded=False):
+                    tab1, tab2, tab3 = st.tabs(["Know More", "Get Full Context", "View Page"])
+                    with tab1:
+                        st.write(bot_template.replace("{{MSG}}", bot_response), unsafe_allow_html=True)
+                    with tab2:
+                        if response.source_nodes:
+                            file_names = list({n.metadata['source'] for n in response.source_nodes})
+                            st.write("#### Source document")
+                            st.write(f"**File:** {file_names[0]}")
+                            st.write("#### Relevant excerpt")
+                            node = response.source_nodes[0]
+                            context_text = f"*Source: {node.metadata.get('source', 'Unknown')}*\n\n{node.text[:400]}..."
+                            st.markdown(context_text)
+                    with tab3:
+                        for node_idx, node in enumerate(response.source_nodes):
+                            path = data_path + node.metadata['source']
+                            page_nums = get_page_num(node.text)
+                            for page_idx, page_num in enumerate(page_nums):
+                                st.write(f"Page {page_num}")
+                                images, image_path = show_image(path, page_num)
+                                st.image(images, caption=f"Page {page_num}", use_column_width=True)
+                                with open(image_path, "rb") as file:
+                                    key = hashlib.sha256(
+                                        (image_path + str(idx) + str(node_idx) +
+                                         str(page_idx) + str(page_num) + user_query).encode()
+                                    ).hexdigest()
+                                    st.download_button(
+                                        label="Download Page ⬇️",
+                                        data=file,
+                                        file_name=image_path,
+                                        mime="image/png",
+                                        key=key
+                                    )
+                break
+            else:
+                st.write(bot_template.replace("{{MSG}}", bot_response), unsafe_allow_html=True)
+                with st.expander(label="More Options", expanded=False):
+                    tab1, tab2 = st.tabs(["Get Full Context", "View Page"])
+                    with tab1:
+                        if response.source_nodes:
+                            file_names = list({n.metadata['source'] for n in response.source_nodes})
+                            st.write("#### Source document")
+                            st.write(f"**File:** {file_names[0]}")
+                            node = response.source_nodes[0]
+                            context_text = f"*Source: {node.metadata.get('source', 'Unknown')}*\n\n{node.text[:400]}..."
+                            st.markdown(context_text)
+                    with tab2:
+                        for node_idx, node in enumerate(response.source_nodes):
+                            path = data_path + node.metadata['source']
+                            page_nums = get_page_num(node.text)
+                            for page_idx, page_num in enumerate(page_nums):
+                                st.write(f"Page {page_num}")
+                                images, image_path = show_image(path, page_num)
+                                st.image(images, caption=f"Page {page_num}", use_column_width=True)
+                                with open(image_path, "rb") as file:
+                                    key = hashlib.sha256(
+                                        (image_path + str(idx) + str(node_idx) +
+                                         str(page_idx) + str(page_num) + user_query).encode()
+                                    ).hexdigest()
+                                    st.download_button(
+                                        label="Download Page ⬇️",
+                                        data=file,
+                                        file_name=image_path,
+                                        mime="image/png",
+                                        key=key
+                                    )
+
+        elif msg.role.name == 'USER':
+            st.write(user_template.replace("{{MSG}}", msg.content), unsafe_allow_html=True)
 
 
-def handle_user_input(user_query: str) -> None:
+
+def check_redis_health() -> dict:
+    """Returns count of vectors and docs currently in Redis."""
+    try:
+        r = redis_client.Redis(host='redis', port=6379)
+        info = r.info('keyspace')
+        keys = r.keys('*')
+        return {
+            "connected": True,
+            "total_keys": len(keys),
+            "keyspace": info
+        }
+    except Exception as e:
+        return {"connected": False, "error": str(e)}
+# def handle_user_input(user_query: str) -> None:
+
     """
     Process user input, retrieve relevant responses, and display them in Streamlit.
 

@@ -33,7 +33,8 @@ def get_conversation_engine(
     ).as_chat_engine(
     llm=llm,
     chat_mode="condense_question",   # faster than default for CPU
-    verbose=False,
+    verbose=True,
+    similarity_top_k=2,
     )
 
     return chat_engine
