@@ -207,8 +207,8 @@ POST /eval/run
 | Metric | Score | Judge LLM |
 |--------|-------|-----------|
 | Faithfulness | **0.87** | GPT-4o-mini |
-| Answer Relevancy | TBD | GPT-4o-mini |
-| Context Precision | TBD | GPT-4o-mini |
+| Answer Relevancy | **0.94** | GPT-4o-mini |
+| Context Precision | **0.85** | GPT-4o-mini |
 
 *Run `POST /eval/run` after adding your OpenAI key to generate scores.*
 
