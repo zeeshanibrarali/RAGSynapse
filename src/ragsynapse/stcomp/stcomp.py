@@ -7,9 +7,13 @@ import hashlib
 import time
 import subprocess
 import io
+from urllib import response
 import toml
 from pathlib import Path
 import redis as redis_client
+from ragsynapse.llm.model_factory import DEFAULT_MODELS, LLMProvider
+from ragsynapse.llm.model_factory import DEFAULT_MODELS
+from ragsynapse.observability.tracker import log_query
 
 # Third-Party Libraries
 import streamlit as st
@@ -116,32 +120,25 @@ def txt_to_pdf(txt_file_path, pdf_file_path):
     pdf.output(pdf_file_path)
 
 
-
-
-
 def initialize_session_state(provider: str = None, model: str = None):
-    """
-    Initialize or reset session states for Streamlit application.
-    Accepts optional provider/model to switch LLM backend.
-    """
     if "conversation" not in st.session_state:
-        _pipeline, _embed_model = load_pipeline() 
+        _pipeline, _embed_model = load_pipeline()
+        active_doc = st.session_state.get("active_document")  # ← ADD THIS
         st.session_state.conversation = get_conversation_engine(
             _embed_model,
             _pipeline.vector_store,
             provider=provider,
             model=model,
+            active_document=active_doc,  # ← ADD THIS
         )
     if "documents_processed" not in st.session_state:
         st.session_state.documents_processed = False
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
     if "llm_provider" not in st.session_state:
-        st.session_state.llm_provider = provider or os.getenv("LLM_PROVIDER", "openai")
+        st.session_state.llm_provider = provider or os.getenv("LLM_PROVIDER", "ollama")
     if "llm_model" not in st.session_state:
         st.session_state.llm_model = model
-
-    # Auto-restore documents_processed if Redis has data
     if not st.session_state.get("documents_processed"):
         from ragsynapse.pipeline import get_stored_documents
         if get_stored_documents():
@@ -301,7 +298,6 @@ def get_page_num(text: str):
 
     return list(unique_page_numbers)
 
-
 def handle_user_input(
     user_query: str,
     provider: str = None,
@@ -309,12 +305,14 @@ def handle_user_input(
 ) -> None:
     """
     Process user input with automatic provider fallback on rate limit errors.
-    Falls back through fallback_chain if current provider hits quota/rate limits.
+    Logs every query to MLflow for observability.
     """
+    from ragsynapse.observability.tracker import log_query
+    from ragsynapse.llm.model_factory import DEFAULT_MODELS, LLMProvider
+
     fallback_chain = fallback_chain or ["openai", "anthropic", "ollama"]
     current_provider = provider or st.session_state.get("llm_provider", "ollama")
 
-    # Build fallback list starting after current provider
     if current_provider in fallback_chain:
         start = fallback_chain.index(current_provider)
         ordered = fallback_chain[start:] + fallback_chain[:start]
@@ -323,10 +321,11 @@ def handle_user_input(
 
     response = None
     used_provider = current_provider
+    chat_history_snapshot = None
+    total_latency_ms = 0.0
 
     for attempt_provider in ordered:
         try:
-            # Re-init conversation engine if provider changed
             if st.session_state.get("llm_provider") != attempt_provider:
                 if "conversation" in st.session_state:
                     del st.session_state["conversation"]
@@ -339,9 +338,16 @@ def handle_user_input(
                     model=None,
                 )
 
+            t0 = perf_counter()
             response = st.session_state.conversation.chat(user_query)
+            total_latency_ms = (perf_counter() - t0) * 1000
+
+            # Capture history immediately before anything else runs
+            chat_history_snapshot = list(
+                st.session_state.conversation.chat_history
+            )
             used_provider = attempt_provider
-            break  # Success — stop trying fallbacks
+            break
 
         except Exception as e:
             err = str(e).lower()
@@ -355,23 +361,40 @@ def handle_user_input(
                     f"⚠️ `{attempt_provider}` rate limit hit — "
                     f"switching to `{next_p}` automatically..."
                 )
-                continue  # Try next provider
+                continue
             else:
                 st.error(f"Query Error: {e}")
                 return
 
-    if response is None:
+    if response is None or chat_history_snapshot is None:
         st.error("All providers failed. Please try again later.")
         return
 
-    # Show which provider was actually used if it changed
+    # ── MLflow tracking ───────────────────────────────────────────────────────
+    used_model = st.session_state.get("llm_model") or DEFAULT_MODELS.get(
+        LLMProvider(used_provider), "unknown"
+    )
+    context_texts = [
+        node.text for node in response.source_nodes
+    ] if hasattr(response, "source_nodes") and response.source_nodes else []
+
+    log_query(
+        question=user_query,
+        answer=str(response),
+        provider=used_provider,
+        model=used_model,
+        total_latency_ms=total_latency_ms,
+        num_source_nodes=len(context_texts),
+        context_texts=context_texts,
+    )
+
     if used_provider != current_provider:
         st.info(f"ℹ️ Response from `{used_provider}` (auto-switched)")
 
-    # ── Display chat history ──────────────────────────────────────────────────
-    st.session_state.chat_history = st.session_state.conversation.chat_history
+    # ── Use snapshot — never touch session_state.conversation again ───────────
+    st.session_state.chat_history = chat_history_snapshot
 
-    for idx, msg in enumerate(st.session_state.chat_history):
+    for idx, msg in enumerate(chat_history_snapshot):
         if msg.content is None:
             continue
 
@@ -451,7 +474,6 @@ def handle_user_input(
 
         elif msg.role.name == 'USER':
             st.write(user_template.replace("{{MSG}}", msg.content), unsafe_allow_html=True)
-
 
 
 def check_redis_health() -> dict:
