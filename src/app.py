@@ -1,19 +1,22 @@
 import os
-from llama_index.core import VectorStoreIndex
-import streamlit as st
-from ragsynapse.llm.model_factory import get_llm
+from dotenv import load_dotenv
+from pathlib import Path
 
+# Load env FIRST — before any other imports
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(dotenv_path=BASE_DIR / ".env")
+load_dotenv(dotenv_path="./.env")
+
+import streamlit as st
+from llama_index.core import VectorStoreIndex
+from ragsynapse.llm.model_factory import get_llm
 
 st.set_page_config(
     page_title="RAGSynapse", page_icon="🧠", layout="wide"
 )
 
-from dotenv import load_dotenv
 from ragsynapse.HTMLTemplates import css
 from ragsynapse.stcomp import initialize_session_state, file_processing, handle_user_input
-
-load_dotenv(dotenv_path="../.env", verbose=True)
-load_dotenv(dotenv_path="./.env", verbose=True)
 
 PROVIDER_FALLBACK = ["openai", "anthropic", "ollama"]
 
@@ -235,14 +238,24 @@ def render_evaluation_tab():
                 model=None
             )
 
+            from llama_index.core.vector_stores import MetadataFilter, MetadataFilters, FilterOperator
+
+            active_doc = st.session_state.get("active_document")
+            filters = None
+            if active_doc:
+                filters = MetadataFilters(filters=[
+                    MetadataFilter(key="source", value=active_doc, operator=FilterOperator.EQ)
+                ])
+            
             query_engine = VectorStoreIndex.from_vector_store(
                 _pipeline.vector_store,
                 embed_model=_embed_model
             ).as_query_engine(
                 llm=_llm,
-                similarity_top_k=2,
+                similarity_top_k=3,
+                filters=filters,
             )
-
+            
             result = run_evaluation(
                 questions=questions,
                 ground_truths=ground_truths,
