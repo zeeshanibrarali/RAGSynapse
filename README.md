@@ -19,6 +19,7 @@ Upload PDFs, DOCX, or TXT files. Ask questions. Get answers with exact page refe
 
 [📂 GitHub](https://github.com/zeeshanibrarali/RAGSynapse) · [🌐 Portfolio](https://zinov.pythonanywhere.com) · [📖 API Docs](http://localhost:8000/docs)
 [🎬 Demo](https://github.com/user-attachments/assets/a59324bf-1e8a-4dc5-a3b6-7cc32c9ad31f)
+https://github.com/user-attachments/assets/381a5524-0124-439f-84ba-b0d0cfceacac
 
 </div>
 
